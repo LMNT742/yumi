@@ -5,9 +5,9 @@ from yolact import Yolact
 from data import set_cfg, cfg
 import torch.backends.cudnn as cudnn
 
-model_path = "/home/martin/catkin_ws/src/yumi_controller/src/detection/weights/example_base_25_290909.pth"
+model_path = "/home/martin/catkin_ws/src/yumi_controller/scripts/detection/weights/example_base_25_290909.pth"
 config = "example_base_config"
-image_path = '/home/martin/catkin_ws/src/yumi_controller/src/detection/tool.jpg'
+image_path = '/home/martin/catkin_ws/src/yumi_controller/scripts/detection/tool.jpg'
 
 with torch.no_grad():
     cudnn.benchmark = True

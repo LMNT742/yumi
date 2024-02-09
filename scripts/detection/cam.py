@@ -9,7 +9,7 @@ import time
 import rospy
 from std_msgs.msg import String, UInt16MultiArray
 
-model_path =  "/home/martin/catkin_ws/src/yumi_controller/src/detection/weights/example_base_25_290909.pth"
+model_path = "/home/martin/catkin_ws/src/yumi_controller/scripts/detection/weights/example_base_25_290909.pth"
 config = "example_base_config"
 
 # Detekcia objektov
