@@ -1,0 +1,8 @@
+.vscode
+.idea
+venv
+/scripts/detection/datasets/
+/scripts/detection/weights/
+/src/
+/CMakeLists.txt
+/package.xml
