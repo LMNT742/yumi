@@ -12,10 +12,10 @@ from std_msgs.msg import String, UInt16MultiArray
 model_path = "/home/martin/catkin_ws/src/yumi_controller/scripts/detection/weights/example_base_25_290909.pth"
 config = "example_base_config"
 
+
 # Detekcia objektov
 def detect_objects(frame):
     with torch.no_grad():
-        ret, frame = cap.read()
         img_tensor = transforms.ToTensor()(frame).cuda().unsqueeze(0)
         preds = net(img_tensor)
         
@@ -44,18 +44,17 @@ def voice_callback(msg: String):
     elif decoded_text == "plochý skrutkovač":
         target_class = "Flat_Screwdriver"
     else:
-        target_class == "Nepoznam objekt"
+        target_class = "Nepoznam objekt"
 
     threshold = 0.7  # prah pre skóre detekcie
     
     try:
         # Detekcia objektov
-        classes, scores, boxes, masks = detect_objects()
+        classes, scores, boxes, masks = detect_objects(frame)
         
         # Overenie prítomnosti cieľového objektu
         state, pos = get_pos(boxes, classes, target_class, frame.shape, threshold)
         if state:
-            pos = get_pos(box, frame.shape)
             pub.publish(pos)
             rospy.loginfo(f"{target_class} je prítomný na snímke.")
         else:
