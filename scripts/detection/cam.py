@@ -52,9 +52,10 @@ def voice_callback(msg: String):
         classes, scores, boxes, masks = detect_objects(frame)
         
         # Searching for selected equipment
-        state, pos = get_pos(boxes, classes, target_class, threshold)
+        state, pos, orientation = get_pos(boxes, classes, target_class, threshold)
         if state:
             pub.publish(pos)
+            pub1.publish(target_class + "/" + orientation)
             rospy.loginfo(f"{target_class} je prítomný na snímke.")
         else:
             rospy.loginfo(f"{target_class} nie je prítomný na snímke.")
@@ -65,33 +66,36 @@ def voice_callback(msg: String):
 
 # Mid bbox counting
 def get_pos(boxes, classes, target_class, threshold):
+    orientation = ""
     pos_list = []
-    width = x2 - x1
-    height = y2 - y1
-    
+   
     for i in range(len(classes)):
         class_name = cfg.dataset.class_names[classes[i]]
         score = scores[i]
         box = boxes[i]
+        x_1, y_1, x_2, y_2 = int(box[0] * frame.shape[1]), int(box[1] * frame.shape[0]), int(box[2] * frame.shape[1]), int(box[3] * frame.shape[0])
+
+        width = x_2 - x_1
+        height = y_2 - y_1
         
         if class_name == target_class and score > threshold:
-            center_x = (x1 + x2) // 2
-            center_y = (y1 + y2) // 2
+            center_x = (x_1 + x_2) // 2
+            center_y = (y_1 + y_2) // 2
             # Vertical orientation
             if width < height:
-                orientation = 0
+                orientation = "up"
             # Horizontal orientation
             elif height < width:
-                orientation = 1
+                orientation = "right"
 
-            pos_list.append((center_x, center_y, orientation))
+            pos_list.append((center_x, center_y))
 
     if pos_list:
         list_of_pos = UInt16MultiArray()
         list_of_pos.data = pos_list[0]
-        return True, list_of_pos
+        return True, list_of_pos, orientation
     else:
-        return False, None
+        return False, None, orientation
 
 
 with torch.no_grad():
@@ -115,8 +119,9 @@ if __name__ == "__main__":
     rospy.init_node("object_detection")
     sub = rospy.Subscriber("/voice_reg", String, voice_callback)
     pub = rospy.Publisher("/object_reg", UInt16MultiArray, queue_size=10)
+    pub1 = rospy.Publisher("/get_object_class", String, queue_size=10)
     # Camera setup
-    cap = cv2.VideoCapture(4)
+    cap = cv2.VideoCapture(8)
 
     start_time = time.time()
     frame_count = 0
