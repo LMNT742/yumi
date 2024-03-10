@@ -29,8 +29,9 @@ class RobotNode:
         print("HomePosition END")
         """
 
-        self.subscriber_objects = rospy.Subscriber("/object_reg", UInt16MultiArray, self.coords_callback)
-        self.subscriber_oblect_classes = rospy.Subscriber("/get_object_class", String, self.orientation_callback)
+        self.sub_coords = rospy.Subscriber("/object_reg", UInt16MultiArray, self.coords_callback)
+        self.sub_target = rospy.Subscriber("/get_object_class", String, self.orientation_callback)
+        self.sub_termite = rospy.Subscriber("/voice_reg", String, self.termite_callback)
 
         rospy.Timer(rospy.Duration(1.0), self.timmer_callback)
 
@@ -75,7 +76,13 @@ class RobotNode:
         self.orientation = list_of_object[1]
         rospy.loginfo(self.worktool)
 
-    def timmer_callback(self,msg):
+    def termite_callback(self, msg: String):
+        received_bytes = msg.data.encode('utf-8')
+        decoded_text = received_bytes.decode('utf-8')
+        if decoded_text == "koniec":
+            rospy.signal_shutdown("koncim")
+
+    def timmer_callback(self, msg):
         # Calculate coords from res
         x,y = calculate_grasp_position(self.mid_box_x, self.mid_box_y)
         if self.worktool != "":

@@ -7,16 +7,17 @@ import cv2
 import torch.backends.cudnn as cudnn
 import rospy
 from std_msgs.msg import String, UInt16MultiArray
+import sys
 
-model_path = "/home/martin/catkin_ws/src/yumi_controller/src/detection/weights/example_base_25_290909.pth"
+model_path = "/home/martin/catkin_ws/src/yumi_controller/scripts/detection/weights/example_base_25_290909.pth"
 config = "example_base_config"
-image_path = '/home/martin/catkin_ws/src/yumi_controller/src/detection/tool.jpg'
+image_path = '/home/martin/catkin_ws/src/yumi_controller/scripts/detection/tool.jpg'
+
 
 # Detekcia objektov
-def detect_objects(image):
+def detect_objects(open_image):
     with torch.no_grad():
-        image = cv2.imread(image_path)
-        img_tensor = transforms.ToTensor()(image).cuda().unsqueeze(0)
+        img_tensor = transforms.ToTensor()(open_image).cuda().unsqueeze(0)
         preds = net(img_tensor)
         
         classes = preds[0]["detection"]["class"]
@@ -33,6 +34,10 @@ def voice_callback(msg: String):
     decoded_text = received_bytes.decode('utf-8')
     rospy.loginfo(decoded_text)
 
+    if decoded_text == "koniec":
+        rospy.signal_shutdown('Ukončenie programu')
+        sys.exit(0)
+
     if decoded_text == "kľúč":
         target_class = "Wrench"  # nastavte cieľovú triedu
     elif decoded_text == "kladivo":
@@ -44,7 +49,7 @@ def voice_callback(msg: String):
     elif decoded_text == "plochý skrutkovač":
         target_class = "Flat_Screwdriver"
     else:
-        pass
+        target_class = "Unknown tool"
     threshold = 0.7  # prah pre skóre detekcie
     
     try:
@@ -54,14 +59,13 @@ def voice_callback(msg: String):
         # Overenie prítomnosti cieľového objektu
         state, pos = get_pos(boxes, classes, target_class, image.shape, threshold)
         if state:
-            print(pos)
             pub.publish(pos)
             rospy.loginfo(f"{target_class} je prítomný na snímke.")
         else:
             rospy.loginfo(f"{target_class} nie je prítomný na snímke.")
             
-    except TypeError:
-        rospy.loginfo("Chyba pri spracovaní snímky.")
+    except TypeError as e:
+        rospy.loginfo("Chyba pri spracovaní snímky.", e)
 
 
 def get_pos(boxes, classes, target_class, frame_shape, threshold):
@@ -145,26 +149,26 @@ if __name__ == "__main__":
     sub = rospy.Subscriber("/voice_reg", String, voice_callback)
     pub = rospy.Publisher("/object_reg", UInt16MultiArray, queue_size=10)
 
-    # Detekce objektů z obrázku
-    classes, scores, boxes, masks = detect_objects(image_path)
+    # Load picture
+    img = cv2.imread(image_path)
 
-    # Vykreslení detekcí na obrázek
-    image = cv2.imread(image_path)
+    # Detekce objektů z obrázku
+    classes, scores, boxes, masks = detect_objects(img)
 
     for i in range(len(classes)):
         class_name = cfg.dataset.class_names[classes[i]]
         score = scores[i]
         box = boxes[i]
         
-        if score > 0.95:  # Přidejte filtraci detekcí na základě skóre (změňte prahovou hodnotu podle potřeby)
-            x1, y1, x2, y2 = int(box[0] * image.shape[1]), int(box[1] * image.shape[0]), int(box[2] * image.shape[1]), int(box[3] * image.shape[0])
-            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        if score > 0.7:  # Přidejte filtraci detekcí na základě skóre (změňte prahovou hodnotu podle potřeby)
+            x1, y1, x2, y2 = int(box[0] * img.shape[1]), int(box[1] * img.shape[0]), int(box[2] * img.shape[1]), int(box[3] * img.shape[0])
+            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
             label = f"{class_name}: {score:.2f}"
-            cv2.putText(image, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.putText(img, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
                 #show image
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    cv2.imshow("Detection",image)
+    cv2.imshow("Detection",img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()

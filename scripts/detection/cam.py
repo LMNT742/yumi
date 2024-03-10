@@ -29,6 +29,7 @@ def detect_objects(frame):
     
 # Callback definition for subscriber
 def voice_callback(msg: String):
+    target_class_list = ["Hammer", "Pliers", "Crossheaded_Screwdriver", "Flat_Screwdriver", "Wrench"]
     received_bytes = msg.data.encode('utf-8')
     decoded_text = received_bytes.decode('utf-8')
     rospy.loginfo(decoded_text)
@@ -44,35 +45,39 @@ def voice_callback(msg: String):
         target_class = "Crossheaded_Screwdriver"
     elif decoded_text == "plochý skrutkovač":
         target_class = "Flat_Screwdriver"
+    elif decoded_text == "koniec":
+        rospy.signal_shutdown("Ukoncenie programu")
     else:
         target_class = "Nepoznam objekt"
     # Detection threshold
     
-    try:
-        classes, scores, boxes, masks = detect_objects(frame)
-        
-        # Searching for selected equipment
-        state, pos, orientation = get_pos(boxes, classes, target_class, threshold)
-        if state:
-            pub.publish(pos)
-            pub1.publish(target_class + "/" + orientation)
-            rospy.loginfo(f"{target_class} je prítomný na snímke.")
-        else:
+    if target_class in target_class_list:
+        try:        
+            # Searching for selected equipment
+            state, pos, orientation = get_pos(target_class, threshold)
+            if state:
+                pub_coords.publish(pos)
+                pub_target.publish(target_class + "/" + orientation)
+                rospy.loginfo(f"{target_class} je prítomný na snímke.")
+            else:
+                rospy.loginfo(f"{target_class} nie je prítomný na snímke.")
+                
+        except TypeError:
             rospy.loginfo(f"{target_class} nie je prítomný na snímke.")
-            
-    except TypeError:
-        rospy.loginfo("Chyba pri spracovaní snímky.")
+    else:
+        rospy.loginfo("Na snímke sa nenachádza detekovateľný objekt!")
 
 
 # Mid bbox counting
-def get_pos(boxes, classes, target_class, threshold):
+def get_pos(target_class, threshold):
     orientation = ""
     pos_list = []
+    pos_classes, pos_scores, pos_boxes, pos_masks = detect_objects(frame)
    
-    for i in range(len(classes)):
-        class_name = cfg.dataset.class_names[classes[i]]
-        score = scores[i]
-        box = boxes[i]
+    for i in range(len(pos_classes)):
+        class_name = cfg.dataset.class_names[pos_classes[i]]
+        score = pos_scores[i]
+        box = pos_boxes[i]
         x_1, y_1, x_2, y_2 = int(box[0] * frame.shape[1]), int(box[1] * frame.shape[0]), int(box[2] * frame.shape[1]), int(box[3] * frame.shape[0])
 
         width = x_2 - x_1
@@ -118,15 +123,15 @@ if __name__ == "__main__":
     # Subscriber/Publisher definition
     rospy.init_node("object_detection")
     sub = rospy.Subscriber("/voice_reg", String, voice_callback)
-    pub = rospy.Publisher("/object_reg", UInt16MultiArray, queue_size=10)
-    pub1 = rospy.Publisher("/get_object_class", String, queue_size=10)
+    pub_coords = rospy.Publisher("/object_reg", UInt16MultiArray, queue_size=10)
+    pub_target = rospy.Publisher("/get_object_class", String, queue_size=10)
     # Camera setup
-    cap = cv2.VideoCapture(8)
+    cap = cv2.VideoCapture(0) # 8 = REalsence, 4 = astra
 
     start_time = time.time()
     frame_count = 0
 
-    while True:
+    while not rospy.is_shutdown():
         ret, frame = cap.read()
         if not ret:
             break
