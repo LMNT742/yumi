@@ -7,7 +7,7 @@ import cv2
 import torch.backends.cudnn as cudnn
 import time
 import rospy
-from std_msgs.msg import String, UInt16MultiArray
+from std_msgs.msg import String, UInt16MultiArray, Int8
 
 model_path = "/home/martin/catkin_ws/src/yumi_controller/scripts/detection/weights/example_base_25_290909.pth"
 config = "example_base_config"
@@ -49,23 +49,25 @@ def voice_callback(msg: String):
         rospy.signal_shutdown("Ukoncenie programu")
     else:
         target_class = "Nepoznam objekt"
-    # Detection threshold
     
-    if target_class in target_class_list:
-        try:        
-            # Searching for selected equipment
-            state, pos, orientation = get_pos(target_class, threshold)
-            if state:
-                pub_coords.publish(pos)
-                pub_target.publish(target_class + "/" + orientation)
-                rospy.loginfo(f"{target_class} je prítomný na snímke.")
-            else:
+    if status == 0:
+        if target_class in target_class_list:
+            try:        
+                # Searching for selected equipment
+                state, pos, orientation = get_pos(target_class, threshold)
+                if state:
+                    pub_coords.publish(pos)
+                    pub_target.publish(target_class + "/" + orientation)
+                    rospy.loginfo(f"{target_class} je prítomný na snímke.")
+                else:
+                    rospy.loginfo(f"{target_class} nie je prítomný na snímke.")
+                    
+            except TypeError:
                 rospy.loginfo(f"{target_class} nie je prítomný na snímke.")
-                
-        except TypeError:
-            rospy.loginfo(f"{target_class} nie je prítomný na snímke.")
-    else:
-        rospy.loginfo("Na snímke sa nenachádza detekovateľný objekt!")
+        else:
+            rospy.loginfo("Na snímke sa nenachádza detekovateľný objekt!")
+    elif status == 1:
+        rospy.loginfo("Yumi musí najskôr ukončiť úlohu!")
 
 
 # Mid bbox counting
@@ -103,6 +105,11 @@ def get_pos(target_class, threshold):
         return False, None, orientation
 
 
+def status_callback(msg: Int8):
+    global status
+    status = msg.data
+
+
 with torch.no_grad():
     cudnn.benchmark = True
     cudnn.fastest = True
@@ -122,11 +129,12 @@ with torch.no_grad():
 if __name__ == "__main__":
     # Subscriber/Publisher definition
     rospy.init_node("object_detection")
-    sub = rospy.Subscriber("/voice_reg", String, voice_callback)
+    sub_commands = rospy.Subscriber("/voice_reg", String, voice_callback)
+    sub_yumi_status = rospy.Subscriber("yumi_status", Int8, status_callback)
     pub_coords = rospy.Publisher("/object_reg", UInt16MultiArray, queue_size=10)
     pub_target = rospy.Publisher("/get_object_class", String, queue_size=10)
     # Camera setup
-    cap = cv2.VideoCapture(0) # 8 = REalsence, 4 = astra
+    cap = cv2.VideoCapture(8) # 8 = REalsence, 4 = astra
 
     start_time = time.time()
     frame_count = 0

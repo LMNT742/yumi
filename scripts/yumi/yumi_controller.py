@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import rospy
-from std_msgs.msg import UInt16MultiArray, String
+from std_msgs.msg import UInt16MultiArray, String, Int8
 from abb import* 
 from time import sleep
 
@@ -8,6 +8,7 @@ from time import sleep
 class RobotNode:
     def __init__(self):
         rospy.init_node("yumi_controller")
+        self.yumi_status = 0
         self.mid_box_x = 0
         self.mid_box_y = 0
         self.worktool = ""
@@ -27,11 +28,12 @@ class RobotNode:
         print(self.robot.RightArm.Read())
         print(self.robot.LeftArm.Read())
         print("HomePosition END")
-        """
+        """    
 
         self.sub_coords = rospy.Subscriber("/object_reg", UInt16MultiArray, self.coords_callback)
         self.sub_target = rospy.Subscriber("/get_object_class", String, self.orientation_callback)
         self.sub_termite = rospy.Subscriber("/voice_reg", String, self.termite_callback)
+        self.pub_move = rospy.Publisher("/yumi_status", Int8, queue_size=10)
 
         rospy.Timer(rospy.Duration(1.0), self.timmer_callback)
 
@@ -43,7 +45,7 @@ class RobotNode:
         self.pR.trans = Position(135, -245, 100)
         self.pL.trans = Position(140, 290, 100)
     
-        self.pR.rot = EulerAngles(pi, 0, pi).toQuaternion()
+        self.pR.rot = EulerAngles(pi, 0, -pi).toQuaternion()
         self.pL.rot = EulerAngles(pi, 0, 0).toQuaternion()
 
         self.pR.robconf = Conf(1, -2, 2, 4)
@@ -80,12 +82,14 @@ class RobotNode:
         received_bytes = msg.data.encode('utf-8')
         decoded_text = received_bytes.decode('utf-8')
         if decoded_text == "koniec":
-            rospy.signal_shutdown("koncim")
+            rospy.signal_shutdown("Ukončenie programu!")
 
     def timmer_callback(self, msg):
         # Calculate coords from res
         x,y = calculate_grasp_position(self.mid_box_x, self.mid_box_y)
         if self.worktool != "":
+            self.yumi_status = 1
+            self.pub_move.publish(self.yumi_status)
             """
             LEFT ARM
             """
@@ -103,7 +107,7 @@ class RobotNode:
                 # grasping postion
                 grip = drop = 0
                 try:
-                    grip,drop = get_orientation(self.orientation, self.worktool)
+                    grip,drop = get_orientation(self.orientation, self.worktool, arm="left")
                 except:
                     print ("orientation or chosen worktool is none")
                 print(grip,drop)
@@ -115,7 +119,7 @@ class RobotNode:
                     count +=1
                     if count >=5 : break 
 
-                self.pL.trans.z = 2
+                self.pL.trans.z = 1
 
                 count = 0
                 while self.robot.LeftArm.MoveTo(self.pL) != True:
@@ -147,11 +151,6 @@ class RobotNode:
                     if count >=5 : break
 
                 self.robot.LeftHand.MoveTo(25.0)
-
-                self.mid_box_x = 0
-                self.mid_box_y = 0
-                self.worktool = ""
-                self.orientation = ""
             
             """
             RIGHT ARM
@@ -170,7 +169,7 @@ class RobotNode:
                 # grasping postion
                 grip = drop = 0
                 try:
-                    grip,drop = get_orientation(self.orientation, self.worktool)
+                    grip,drop = get_orientation(self.orientation, self.worktool, arm="right")
                 except:
                         print ("orientation or chosen worktool is none")
                 print(grip,drop)
@@ -182,7 +181,7 @@ class RobotNode:
                     count +=1
                     if count >=5 : break 
 
-                self.pR.trans.z = 3
+                self.pR.trans.z = 1
                 
                 count = 0
                 while self.robot.RightArm.MoveTo(self.pR) != True:
@@ -215,19 +214,22 @@ class RobotNode:
 
                 self.robot.RightHand.MoveTo(25.0)
 
-                self.mid_box_x = 0
-                self.mid_box_y = 0
-                self.worktool = ""
-                self.orientation = ""
-
+        # Set up default values
+        self.yumi_status = 0
+        self.mid_box_x = 0
+        self.mid_box_y = 0
+        self.worktool = ""
+        self.orientation = ""
 
         # parking position
         self.pR.trans = Position(135, -245, 100)
         self.pL.trans = Position(140, 290, 100)
-        self.pR.rot = EulerAngles(pi, 0, pi).toQuaternion()
+        self.pR.rot = EulerAngles(pi, 0, -pi).toQuaternion()
         self.pL.rot = EulerAngles(pi, 0, 0).toQuaternion()
         self.robot.LeftArm.MoveTo(self.pL)
         self.robot.RightArm.MoveTo(self.pR)
+
+        self.pub_move.publish(self.yumi_status)
 
 
 # Get robt_coords
@@ -249,26 +251,29 @@ def rescale(x, old_min, old_max, new_min, new_max):
   return rescaled_x
 
 
-def get_orientation(orientation, worktool):
-        if orientation == "up":
-            if worktool == "Hammer" or "Wrench":
+def get_orientation(orientation, worktool, arm):
+        if arm == "left":
+            if orientation == "up":
                 grip_rot_pick = -pi/2
                 grip_rot_drop = -pi/2
                 return grip_rot_pick, grip_rot_drop  
-            elif worktool == "Crossheaded_Screwdriver" or "Flat_Screwdriver" or "Pliers":
-                grip_rot_pick = pi/2
-                grip_rot_drop = -pi/2
-                return grip_rot_pick, grip_rot_drop
-            
-        if orientation == "right":
-            if worktool == "Hammer" or "Wrench":
+
+            if orientation == "right":
                 grip_rot_pick = 0
                 grip_rot_drop = -pi/2
                 return grip_rot_pick, grip_rot_drop  
-            elif worktool == "Crossheaded_Screwdriver" or "Flat_Screwdriver" or "Pliers":
-                grip_rot_pick = pi
-                grip_rot_drop = 3*pi/2
+                
+        elif arm == "right":
+            if orientation == "up":
+                grip_rot_pick = -3*pi/2
+                grip_rot_drop = -3*pi/2
+                return grip_rot_pick, grip_rot_drop  
+                
+            if orientation == "right":
+                grip_rot_pick = -pi
+                grip_rot_drop = -3*pi/2
                 return grip_rot_pick, grip_rot_drop
+
         else:
             rospy.logwarn("Unknown orientation") 
 
