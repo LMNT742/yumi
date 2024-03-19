@@ -131,7 +131,7 @@ class RobotNode:
                 self.robot.LeftHand.GripSmart(10.0, 6.0, 20.0) # force 10, distance between fingers 6mm tolerance 20mm
                 sleep(0.5)
                 #handling position
-                self.pL.trans.z = 100
+                self.pL.trans.z = 60
                 self.pL.rot = EulerAngles(pi, 0, drop ).toQuaternion()
 
                 count = 0
@@ -193,7 +193,7 @@ class RobotNode:
                 self.robot.RightHand.GripSmart(10.0, 6.0, 20.0) # force 10, distance between fingers 6mm tolerance 20mm
                 sleep(0.5)
                 #handling position
-                self.pR.trans.z = 100
+                self.pR.trans.z = 80
                 self.pR.rot = EulerAngles(pi, 0, drop ).toQuaternion()
 
                 count = 0
