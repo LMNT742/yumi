@@ -130,11 +130,11 @@ if __name__ == "__main__":
     # Subscriber/Publisher definition
     rospy.init_node("object_detection")
     sub_commands = rospy.Subscriber("/voice_reg", String, voice_callback)
-    sub_yumi_status = rospy.Subscriber("yumi_status", Int8, status_callback)
+    sub_yumi_status = rospy.Subscriber("/yumi_status", Int8, status_callback)
     pub_coords = rospy.Publisher("/object_reg", UInt16MultiArray, queue_size=10)
     pub_target = rospy.Publisher("/get_object_class", String, queue_size=10)
     # Camera setup
-    cap = cv2.VideoCapture(8) # 8 = REalsence, 4 = astra
+    cap = cv2.VideoCapture(0) # 8 = REalsence, 4 = astra
 
     start_time = time.time()
     frame_count = 0

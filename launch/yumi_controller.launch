@@ -1,0 +1,5 @@
+<launch>
+    <node pkg="yumi_controller" type="voice.py" name="voice_detection" output="screen"></node>
+    <node pkg="yumi_controller" type="cam.py" name="object_detection" output="screen"></node>
+    <node pkg="yumi_controller" type="yumi_controller.py" name="yumi_controller" output="screen"></node>
+</launch>
