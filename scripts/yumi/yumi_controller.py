@@ -28,13 +28,13 @@ class RobotNode:
         print(self.robot.RightArm.Read())
         print(self.robot.LeftArm.Read())
         print("HomePosition END")
-        """    
-
+        """
+        
         self.sub_coords = rospy.Subscriber("/object_reg", UInt16MultiArray, self.coords_callback)
         self.sub_target = rospy.Subscriber("/get_object_class", String, self.orientation_callback)
         self.sub_termite = rospy.Subscriber("/voice_reg", String, self.termite_callback)
         self.pub_move = rospy.Publisher("/yumi_status", Int8, queue_size=10)
-
+        
         rospy.Timer(rospy.Duration(1.0), self.timmer_callback)
 
         #linearMovement
@@ -64,6 +64,7 @@ class RobotNode:
 
         self.robot.RightHand.MoveTo(25.0)
         self.robot.LeftHand.MoveTo(25.0)
+        
 
         rospy.loginfo("YuMi is in parking position")
 
@@ -81,7 +82,7 @@ class RobotNode:
     def termite_callback(self, msg: String):
         received_bytes = msg.data.encode('utf-8')
         decoded_text = received_bytes.decode('utf-8')
-        if decoded_text == "koniec":
+        if decoded_text == "ukonči prevádzku":
             rospy.signal_shutdown("Ukončenie programu!")
 
     def timmer_callback(self, msg):
@@ -193,7 +194,7 @@ class RobotNode:
                 self.robot.RightHand.GripSmart(10.0, 6.0, 20.0) # force 10, distance between fingers 6mm tolerance 20mm
                 sleep(0.5)
                 #handling position
-                self.pR.trans.z = 80
+                self.pR.trans.z = 60
                 self.pR.rot = EulerAngles(pi, 0, drop ).toQuaternion()
 
                 count = 0

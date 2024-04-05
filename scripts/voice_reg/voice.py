@@ -35,7 +35,7 @@ if __name__ == "__main__":
         with sr.Microphone(device_index=5) as source:
             # definicia zdroja mikrofonu
             r.adjust_for_ambient_noise(source, duration=0.2)
-            while query != "koniec":
+            while query != "ukonči prevádzku":
                 query = mic_func()
                 if query != "":
                     pub.publish(query)

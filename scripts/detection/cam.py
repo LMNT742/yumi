@@ -45,7 +45,7 @@ def voice_callback(msg: String):
         target_class = "Crossheaded_Screwdriver"
     elif decoded_text == "plochý skrutkovač":
         target_class = "Flat_Screwdriver"
-    elif decoded_text == "koniec":
+    elif decoded_text == "ukonči prevádzku":
         rospy.signal_shutdown("Ukoncenie programu")
     else:
         target_class = "Nepoznam objekt"
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     pub_coords = rospy.Publisher("/object_reg", UInt16MultiArray, queue_size=10)
     pub_target = rospy.Publisher("/get_object_class", String, queue_size=10)
     # Camera setup
-    cap = cv2.VideoCapture(0) # 8 = REalsence, 4 = astra
+    cap = cv2.VideoCapture(8) # 8 = REalsence, 4 = astra
 
     start_time = time.time()
     frame_count = 0
@@ -168,7 +168,7 @@ if __name__ == "__main__":
         fps_elapsed_time = fps_end_time - start_time
         fps = frame_count / fps_elapsed_time if fps_elapsed_time > 0 else 0
 
-        cv2.putText(frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # cv2.putText(frame, f"FPS: {fps:.2f}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
         cv2.imshow('YOLACT Object Detection', frame)
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
