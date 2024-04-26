@@ -2,21 +2,21 @@
 import speech_recognition as sr
 import rospy
 from std_msgs.msg import String
-print(sr.Microphone.list_microphone_names())
+value_of_mic = sr.Microphone.list_microphone_names()
 
 query = ""
 
-def mic_func():  # funkcia pre rozpoznanie hlasu
+# Voice_recognition
+def mic_func():  
     print("Zadaj príkaz: ")
     audio = r.listen(source)
 
     try:
-        # pouzitie google modelu pre rozpoznanie jazyka
+        # Google recognizer
         query = r.recognize_google(audio, language='sk-SK')
         rospy.loginfo(f"Prikaz: {query}")
         #print(f"Príkaz: {query}")
         return query
-    # osetrenie pre chybami
     except sr.UnknownValueError:
         print("Could not hear that, Try saying again")
         return None
@@ -26,14 +26,13 @@ def mic_func():  # funkcia pre rozpoznanie hlasu
     
 
 if __name__ == "__main__":
-    #definovanie publishera pre odosielanie sprav
+    #Subscriber definition
     rospy.init_node("voice_recognition")
     pub = rospy.Publisher("/voice_reg", String, queue_size=10)
-    # Inicializacia Recognizer s vybraným mikrofónom
+    # Recognizer init.
     try:
         r = sr.Recognizer()
-        with sr.Microphone(device_index=5) as source:
-            # definicia zdroja mikrofonu
+        with sr.Microphone(device_index=(len(value_of_mic)-1)) as source:
             r.adjust_for_ambient_noise(source, duration=0.2)
             while query != "ukonči prevádzku":
                 query = mic_func()

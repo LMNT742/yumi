@@ -108,7 +108,7 @@ class RobotNode:
                 # grasping postion
                 grip = drop = 0
                 try:
-                    grip,drop = get_orientation(self.orientation, self.worktool, arm="left")
+                    grip,drop = get_orientation(self.orientation, arm="left")
                 except:
                     print ("orientation or chosen worktool is none")
                 print(grip,drop)
@@ -170,7 +170,7 @@ class RobotNode:
                 # grasping postion
                 grip = drop = 0
                 try:
-                    grip,drop = get_orientation(self.orientation, self.worktool, arm="right")
+                    grip,drop = get_orientation(self.orientation, arm="right")
                 except:
                         print ("orientation or chosen worktool is none")
                 print(grip,drop)
@@ -202,7 +202,7 @@ class RobotNode:
                     self.robot.RightArm.MoveTo(self.pR)
                     count +=1
                     if count >=5 : break 
-
+                # Pick_drop possition
                 self.pR.trans.x = 600
                 self.pR.trans.y = 0
                 self.pR.trans.z = 200
@@ -233,7 +233,7 @@ class RobotNode:
         self.pub_move.publish(self.yumi_status)
 
 
-# Get robt_coords
+# Get robot_coords
 def calculate_grasp_position(u,v):
     grasp_y = rescale(u,0,640,290,-245)
     grasp_x = rescale(v,0,480,510,120)
@@ -252,7 +252,7 @@ def rescale(x, old_min, old_max, new_min, new_max):
   return rescaled_x
 
 
-def get_orientation(orientation, worktool, arm):
+def get_orientation(orientation, arm):
         if arm == "left":
             if orientation == "up":
                 grip_rot_pick = -pi/2
